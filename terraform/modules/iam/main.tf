@@ -8,11 +8,12 @@ resource "aws_iam_role" "ecs_task_execution_role" {
       Action = "sts:AssumeRole"
       Effect = "Allow"
       Principal = {
-        Service = "://amazonaws.com"
+        Service = "ecs-tasks.amazonaws.com" # Check this line carefully
       }
     }]
   })
 }
+
 
 # Attach the standard Amazon policy for ECR pulling and Logging
 resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
