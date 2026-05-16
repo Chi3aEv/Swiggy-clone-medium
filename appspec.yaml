@@ -6,5 +6,5 @@ Resources:
       Properties:
         TaskDefinition: arn:aws:ecs:ap-south-1:981265949290:task-definition/swiggy-task:14
         LoadBalancerInfo:
-          ContainerName: "swiggy"
+          ContainerName: "swiggy-app"
           ContainerPort: 80
