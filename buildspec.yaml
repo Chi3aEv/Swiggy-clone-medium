@@ -18,10 +18,7 @@ phases:
       -  curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 
       # Install Sonar Scanner
-      - wget https://github.com/SonarSource/sonar-scanner-cli/releases/download/5.0.1.3006/sonar-scanner-cli-5.0.1.3006-linux.zip
-      - unzip sonar-scanner-cli-5.0.1.3006-linux.zip -d /opt/
-      - ln -s /opt/sonar-scanner-5.0.1.3006-linux/bin/sonar-scanner /usr/local/bin/sonar-scanner
-      - sonar-scanner --version
+       - npm install -g sonar-scanner
 
   pre_build:
     commands:
