@@ -3,13 +3,13 @@ provider "aws" {
 }
 
 module "networking" { source = "./modules/networking" }
-module "ecr"        { source = "./modules/ecr" }
-module "iam"        { source = "./modules/iam" }
+module "ecr" { source = "./modules/ecr" }
+module "iam" { source = "./modules/iam" }
 
 module "alb" {
-  source    = "./modules/alb"
-  vpc_id    = module.networking.vpc_id
-  subnets   = module.networking.public_subnets
+  source  = "./modules/alb"
+  vpc_id  = module.networking.vpc_id
+  subnets = module.networking.public_subnets
 }
 
 module "ecs" {
