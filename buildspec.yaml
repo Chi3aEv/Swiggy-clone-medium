@@ -10,15 +10,12 @@ phases:
     runtime-versions:
       nodejs: 18
     commands:
-      # Update and install dependencies
       - apt-get update -y
       - apt-get install -y wget unzip curl
-
-      # Install Trivy
-      -  curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
-
-      # Install Sonar Scanner
-       - npm install -g sonar-scanner
+      - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+      - trivy --version
+      - npm install -g sonar-scanner
+      - sonar-scanner --version
 
   pre_build:
     commands:
@@ -33,30 +30,16 @@ phases:
   build:
     commands:
       - echo Build started on `date`
-
-      # Trivy filesystem scan
       - echo "Running Trivy filesystem scan..."
       - trivy fs . --format table -o trivyfilescan.txt
       - cat trivyfilescan.txt
-
-      # SonarQube analysis
       - echo "Running SonarQube analysis..."
-      - sonar-scanner \
-          -Dsonar.projectKey=swiggy-clone \
-          -Dsonar.sources=. \
-          -Dsonar.host.url=$SONAR_HOST_URL \
-          -Dsonar.login=$SONAR_TOKEN
-
-      # Docker build
+      - sonar-scanner -Dsonar.projectKey=swiggy-clone -Dsonar.sources=. -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN
       - echo "Building Docker image..."
       - docker build -t swiggy-clone:$IMAGE_TAG .
-
-      # Trivy image scan
       - echo "Running Trivy image scan..."
       - trivy image swiggy-clone:$IMAGE_TAG --format table -o trivyimagescan.txt
       - cat trivyimagescan.txt
-
-      # Tag image for ECR
       - docker tag swiggy-clone:$IMAGE_TAG $ECR_URI:$IMAGE_TAG
       - docker tag swiggy-clone:$IMAGE_TAG $ECR_URI:latest
 
@@ -65,7 +48,6 @@ phases:
       - echo "Pushing image to ECR..."
       - docker push $ECR_URI:$IMAGE_TAG
       - docker push $ECR_URI:latest
-
       - echo "Writing imagedefinitions.json..."
       - printf '[{"name":"swiggy","imageUri":"%s"}]' $ECR_URI:$IMAGE_TAG > imagedefinitions.json
       - cat imagedefinitions.json
