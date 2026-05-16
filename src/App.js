@@ -9,6 +9,16 @@ import RestaurentOnline from './Components/RestaurentOnline';
 function App() {
   return (
     <div>
+      <div style={{
+        background: '#FC8019',
+        color: 'white',
+        textAlign: 'center',
+        padding: '8px',
+        fontSize: '14px',
+        fontWeight: 'bold'
+      }}>
+        🚀 Version 2.0 — Deployed via Blue-Green DevSecOps Pipeline on AWS ECS
+      </div>
       <Navigate/>
       <OffersBanner/>
       <RestaurentChain/>
