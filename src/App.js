@@ -10,14 +10,14 @@ function App() {
   return (
     <div>
       <div style={{
-        background: '#fc19a1',
+        background: '#070001',
         color: 'white',
         textAlign: 'center',
         padding: '8px',
         fontSize: '14px',
         fontWeight: 'bold'
       }}>
-        🚀 Version 3.0 — Deployed via Blue-Green DevSecOps Pipeline on AWS ECS
+        🚀 Version 4.0 — Deployed via Blue-Green DevSecOps Pipeline on AWS ECS
       </div>
       <Navigate/>
       <OffersBanner/>
