@@ -48,9 +48,18 @@ phases:
       - echo "Pushing image to ECR..."
       - docker push $ECR_URI:$IMAGE_TAG
       - docker push $ECR_URI:latest
+
       - echo "Writing imagedefinitions.json..."
       - printf '[{"name":"swiggy-app","imageUri":"%s"}]' $ECR_URI:$IMAGE_TAG > imagedefinitions.json
       - cat imagedefinitions.json
+
+      - echo "Updating task definition with new image..."
+      - TASK_DEF=$(aws ecs describe-task-definition --task-definition swiggy-task --region ap-south-1)
+      - NEW_TASK_DEF=$(echo $TASK_DEF | python3 -c "import json,sys; t=json.load(sys.stdin)['taskDefinition']; t['containerDefinitions'][0]['image']='$ECR_URI:$IMAGE_TAG'; [t.pop(k,None) for k in ['taskDefinitionArn','revision','status','requiresAttributes','placementConstraints','compatibilities','registeredAt','registeredBy']]; print(json.dumps(t))")
+      - NEW_TASK_ARN=$(aws ecs register-task-definition --region ap-south-1 --cli-input-json "$NEW_TASK_DEF" | python3 -c "import json,sys; print(json.load(sys.stdin)['taskDefinition']['taskDefinitionArn'])")
+      - echo "New task definition ARN $NEW_TASK_ARN"
+      - sed -i "s|<TASK_DEFINITION>|$NEW_TASK_ARN|g" appspec.yaml
+      - cat appspec.yaml
 
 artifacts:
   files:
