@@ -4,6 +4,9 @@ env:
   parameter-store:
     SONAR_TOKEN: "/cicd/sonar/sonar-token"
     SONAR_HOST_URL: "/cicd/sonar/sonar-host-url"
+  variables:
+    AWS_REGION: "ap-south-1"
+    ECR_REPO: "swiggy-clone"
 
 phases:
   install:
@@ -19,31 +22,20 @@ phases:
 
   pre_build:
     commands:
-      - echo Logging into ECR
       - AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-      - AWS_REGION=ap-south-1
-      - ECR_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/swiggy-clone
+      - ECR_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO
       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | head -c 7)
+      - export ECR_URI IMAGE_TAG
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-      - echo "ECR login successful"
-      - echo "IMAGE_TAG=$IMAGE_TAG" >> vars.env
-      - echo "ECR_URI=$ECR_URI" >> vars.env
-      - cat vars.env
+      - echo "ECR_URI=$ECR_URI IMAGE_TAG=$IMAGE_TAG"
 
   build:
     commands:
-      - source vars.env
-      - echo "IMAGE_TAG is $IMAGE_TAG"
-      - echo "ECR_URI is $ECR_URI"
       - echo Build started on `date`
-      - echo "Running Trivy filesystem scan..."
       - trivy fs . --format table -o trivyfilescan.txt
       - cat trivyfilescan.txt
-      - echo "Running SonarQube analysis..."
       - sonar-scanner -Dsonar.projectKey=swiggy-clone -Dsonar.sources=. -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN
-      - echo "Building Docker image..."
       - docker build -t swiggy-clone:$IMAGE_TAG .
-      - echo "Running Trivy image scan..."
       - trivy image swiggy-clone:$IMAGE_TAG --format table -o trivyimagescan.txt
       - cat trivyimagescan.txt
       - docker tag swiggy-clone:$IMAGE_TAG $ECR_URI:$IMAGE_TAG
@@ -51,21 +43,10 @@ phases:
 
   post_build:
     commands:
-      - source vars.env
-      - echo "IMAGE_TAG is $IMAGE_TAG"
-      - echo "Pushing image to ECR..."
       - docker push $ECR_URI:$IMAGE_TAG
       - docker push $ECR_URI:latest
-      - echo "Writing imagedefinitions.json..."
       - printf '[{"name":"swiggy-app","imageUri":"%s"}]' $ECR_URI:$IMAGE_TAG > imagedefinitions.json
       - cat imagedefinitions.json
-      - echo "Updating task definition..."
-      - TASK_DEF=$(aws ecs describe-task-definition --task-definition swiggy-task --region ap-south-1)
-      - NEW_TASK_DEF=$(echo $TASK_DEF | python3 -c "import json,sys; t=json.load(sys.stdin)['taskDefinition']; t['containerDefinitions'][0]['image']='$(source vars.env && echo $ECR_URI):$IMAGE_TAG'; [t.pop(k,None) for k in ['taskDefinitionArn','revision','status','requiresAttributes','placementConstraints','compatibilities','registeredAt','registeredBy']]; print(json.dumps(t))")
-      - NEW_TASK_ARN=$(aws ecs register-task-definition --region ap-south-1 --cli-input-json "$NEW_TASK_DEF" | python3 -c "import json,sys; print(json.load(sys.stdin)['taskDefinition']['taskDefinitionArn'])")
-      - echo "New task definition ARN $NEW_TASK_ARN"
-      - sed -i "s|<TASK_DEFINITION>|$NEW_TASK_ARN|g" appspec.yaml
-      - cat appspec.yaml
 
 artifacts:
   files:
