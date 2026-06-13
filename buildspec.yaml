@@ -4,9 +4,6 @@ env:
   parameter-store:
     SONAR_TOKEN: "/cicd/sonar/sonar-token"
     SONAR_HOST_URL: "/cicd/sonar/sonar-host-url"
-  variables:
-    AWS_REGION: "ap-south-1"
-    ECR_REPO: "swiggy-clone"
 
 phases:
   install:
@@ -22,20 +19,25 @@ phases:
 
   pre_build:
     commands:
+      - echo Logging into ECR
       - AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-      - ECR_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO
+      - AWS_REGION=ap-south-1
+      - ECR_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/swiggy-clone
       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | head -c 7)
-      - export ECR_URI IMAGE_TAG
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-      - echo "ECR_URI=$ECR_URI IMAGE_TAG=$IMAGE_TAG"
+      - echo "ECR login successful"
 
   build:
     commands:
       - echo Build started on `date`
+      - echo "Running Trivy filesystem scan..."
       - trivy fs . --format table -o trivyfilescan.txt
       - cat trivyfilescan.txt
+      - echo "Running SonarQube analysis..."
       - sonar-scanner -Dsonar.projectKey=swiggy-clone -Dsonar.sources=. -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN
+      - echo "Building Docker image..."
       - docker build -t swiggy-clone:$IMAGE_TAG .
+      - echo "Running Trivy image scan..."
       - trivy image swiggy-clone:$IMAGE_TAG --format table -o trivyimagescan.txt
       - cat trivyimagescan.txt
       - docker tag swiggy-clone:$IMAGE_TAG $ECR_URI:$IMAGE_TAG
@@ -43,8 +45,10 @@ phases:
 
   post_build:
     commands:
+      - echo "Pushing image to ECR..."
       - docker push $ECR_URI:$IMAGE_TAG
       - docker push $ECR_URI:latest
+      - echo "Writing imagedefinitions.json..."
       - printf '[{"name":"swiggy-app","imageUri":"%s"}]' $ECR_URI:$IMAGE_TAG > imagedefinitions.json
       - cat imagedefinitions.json
 
