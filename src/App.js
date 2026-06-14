@@ -17,7 +17,7 @@ function App() {
         fontSize: '14px',
         fontWeight: 'bold'
       }}>
-        🚀 Version 2.0 — Deployed via Blue-Green DevSecOps Pipeline on AWS ECS
+        🚀 Version 3.0 — Deployed via Blue-Green DevSecOps Pipeline on AWS ECS
       </div>
       <Navigate/>
       <OffersBanner/>
