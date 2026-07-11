@@ -10,7 +10,7 @@ function App() {
   return (
     <div>
       <div style={{
-        background: '#210202',
+        background: '#061958',
         color: 'white',
         textAlign: 'center',
         padding: '8px',
